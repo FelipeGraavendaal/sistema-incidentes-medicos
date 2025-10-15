@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Incidentes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-orange-50 to-orange-100 min-h-screen">
+    
+    <div id="modalLogin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Iniciar Sesión</h2>
+            <input type="email" id="loginEmail" placeholder="tu@email.com"
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4">
+            <button onclick="iniciarSesion()" 
+                class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold">
+                Continuar
+            </button>
+            <p class="text-sm text-gray-600 mt-4 text-center">
+                ¿No tienes cuenta? <a href="/planes.html" class="text-blue-600">Suscríbete</a>
+            </p>
+        </div>
+    </div>
+
+    <div id="app" class="max-w-4xl mx-auto px-4 py-6"></div>
+
+    <script>
+        let userEmail = localStorage.getItem('userEmail');
+        let state = {
+            activeTab: 'buscar',
+            rutDigits: '',
+            initials: '',
+            selectedPatient: null,
+            error: ''
+        };
+
+        if (!userEmail) {
+            document.getElementById('modalLogin').style.display = 'flex';
+        } else {
+            document.getElementById('modalLogin').style.display = 'none';
+            render();
+        }
+
+        function iniciarSesion() {
+            const email = document.getElementById('loginEmail').value;
+            if (!email || !email.includes('@')) {
+                alert('Ingresa un email válido');
+                return;
+            }
+            userEmail = email;
+            localStorage.setItem('userEmail', email);
+            document.getElementById('modalLogin').style.display = 'none';
+            render();
+        }
+
+        function render() {
+            document.getElementById('app').innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h1 class="text-3xl font-bold mb-4">Sistema de Incidentes</h1>
+                    <p class="text-sm text-gray-600">Usuario: ${userEmail}</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-xl font-bold mb-6">Buscar Paciente</h2>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        <input type="text" id="rutDigits" placeholder="Últimos 3 dígitos RUT" maxlength="3"
+                            class="px-4 py-3 border-2 rounded-lg text-center" value="${state.rutDigits}">
+                        <input type="text" id="initials" placeholder="Iniciales" maxlength="2"
+                            class="px-4 py-3 border-2 rounded-lg text-center uppercase" value="${state.initials}">
+                    </div>
+
+                    ${state.error ? `<div class="bg-red-50 p-4 rounded mb-4 text-red-700">${state.error}</div>` : ''}
+
+                    <button onclick="buscarPaciente()" 
+                        class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold">
+                        Buscar
+                    </button>
+
+                    ${state.selectedPatient ? `
+                        <div class="mt-6 border-t pt-6">
+                            <h3 class="text-xl font-bold mb-4">Paciente: ${state.selectedPatient.nombre} ${state.selectedPatient.apellido}</h3>
+                            <p class="mb-2">RUT: ${state.selectedPatient.rut_completo}</p>
+                            <p class="mb-4">Nivel de Riesgo: <span class="font-bold">${state.selectedPatient.nivel_riesgo}</span></p>
+                            
+                            <h4 class="font-bold mb-2">Incidentes:</h4>
+                            ${state.selectedPatient.estudios.map(inc => `
+                                <div class="border rounded-lg p-4 mb-2">
+                                    <p class="font-semibold">${inc.tipo_incidente}</p>
+                                    <p class="text-sm text-gray-600">${inc.descripcion}</p>
+                                    <p class="text-xs text-gray-500 mt-2">${inc.fecha_incidente}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-blue-800">💡 Prueba con: RUT <strong>678</strong> e Iniciales <strong>JP</strong></p>
+                </div>
+            `;
+
+            document.getElementById('rutDigits').addEventListener('input', (e) => {
+                state.rutDigits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                render();
+            });
+
+            document.getElementById('initials').addEventListener('input', (e) => {
+                state.initials = e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase();
+                render();
+            });
+        }
+
+        async function buscarPaciente() {
+            if (state.rutDigits.length !== 3 || state.initials.length !== 2) {
+                state.error = 'Ingresa 3 dígitos y 2 iniciales';
+                render();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/buscar-paciente', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        rut_ultimos_3: state.rutDigits, 
+                        iniciales: state.initials 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.pacientes.length > 0) {
+                    state.selectedPatient = data.pacientes[0];
+                    state.error = '';
+                } else {
+                    state.error = 'No se encontró paciente';
+                    state.selectedPatient = null;
+                }
+            } catch (error) {
+                state.error = 'Error al conectar';
+            }
+
+            render();
+        }
+    </script>
+</body>
+</html>
