@@ -3,42 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Incidentes</title>
+    <title>Sistema de Incidentes Médicos</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-orange-50 to-orange-100 min-h-screen">
     
+    <!-- Modal de Login -->
     <div id="modalLogin" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Iniciar Sesión</h2>
             <input type="email" id="loginEmail" placeholder="tu@email.com"
-                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4">
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg mb-4 focus:border-orange-500 focus:outline-none">
             <button onclick="iniciarSesion()" 
-                class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold">
+                class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700">
                 Continuar
             </button>
-            <p class="text-sm text-gray-600 mt-4 text-center">
-                ¿No tienes cuenta? <a href="/planes.html" class="text-blue-600">Suscríbete</a>
-            </p>
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p class="text-sm text-blue-800 font-semibold mb-2">💡 Usuario de prueba:</p>
+                <p class="text-xs text-blue-700">Email: <strong>demo@clinica.cl</strong></p>
+            </div>
         </div>
     </div>
 
-    <div id="app" class="max-w-4xl mx-auto px-4 py-6"></div>
+    <!-- Contenido Principal -->
+    <nav id="navbar" class="bg-white shadow-lg mb-6 hidden">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Sistema de Incidentes</h1>
+                    <p class="text-sm text-gray-600" id="infoUsuario"></p>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="window.location.href='/planes.html'" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Ver Planes
+                    </button>
+                    <button onclick="cerrarSesion()" 
+                        class="border-2 border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50">
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="app" class="max-w-4xl mx-auto px-4"></div>
 
     <script>
         let userEmail = localStorage.getItem('userEmail');
+        let suscripcionActiva = false;
+        
         let state = {
             activeTab: 'buscar',
             rutDigits: '',
             initials: '',
             selectedPatient: null,
-            error: ''
+            error: '',
+            formData: {
+                rutPaciente: '',
+                nombre: '',
+                apellido: '',
+                centroMedico: '',
+                tipoIncidente: '',
+                fechaIncidente: '',
+                descripcion: ''
+            },
+            incidenteRegistrado: false,
+            numeroRegistro: ''
         };
 
+        // Verificar sesión al cargar
         if (!userEmail) {
             document.getElementById('modalLogin').style.display = 'flex';
         } else {
             document.getElementById('modalLogin').style.display = 'none';
+            document.getElementById('navbar').classList.remove('hidden');
+            verificarSuscripcion();
             render();
         }
 
@@ -51,70 +91,242 @@
             userEmail = email;
             localStorage.setItem('userEmail', email);
             document.getElementById('modalLogin').style.display = 'none';
+            document.getElementById('navbar').classList.remove('hidden');
+            document.getElementById('infoUsuario').textContent = `Usuario: ${email}`;
+            verificarSuscripcion();
             render();
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('userEmail');
+            location.reload();
+        }
+
+        async function verificarSuscripcion() {
+            try {
+                const response = await fetch(`/api/verificar-suscripcion/${userEmail}`);
+                const data = await response.json();
+                
+                if (data.activa) {
+                    suscripcionActiva = true;
+                    document.getElementById('infoUsuario').innerHTML = 
+                        `<span class="text-green-600">✓ ${data.suscripcion.plan}</span>
+                         <span class="text-gray-500 ml-2">(${data.suscripcion.diasRestantes} días restantes)</span>`;
+                } else {
+                    suscripcionActiva = false;
+                    document.getElementById('infoUsuario').innerHTML = 
+                        `<span class="text-red-600">⚠ Sin suscripción activa</span>`;
+                }
+            } catch (error) {
+                console.error('Error al verificar suscripción:', error);
+            }
         }
 
         function render() {
             document.getElementById('app').innerHTML = `
                 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <h1 class="text-3xl font-bold mb-4">Sistema de Incidentes</h1>
-                    <p class="text-sm text-gray-600">Usuario: ${userEmail}</p>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-xl font-bold mb-6">Buscar Paciente</h2>
-                    
-                    <div class="grid md:grid-cols-2 gap-4 mb-6">
-                        <input type="text" id="rutDigits" placeholder="Últimos 3 dígitos RUT" maxlength="3"
-                            class="px-4 py-3 border-2 rounded-lg text-center" value="${state.rutDigits}">
-                        <input type="text" id="initials" placeholder="Iniciales" maxlength="2"
-                            class="px-4 py-3 border-2 rounded-lg text-center uppercase" value="${state.initials}">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Sistema de Registro de Incidentes</h2>
+                            <p class="text-sm text-gray-600">Control de pacientes con comportamiento conflictivo</p>
+                        </div>
                     </div>
 
-                    ${state.error ? `<div class="bg-red-50 p-4 rounded mb-4 text-red-700">${state.error}</div>` : ''}
-
-                    <button onclick="buscarPaciente()" 
-                        class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold">
-                        Buscar
-                    </button>
-
-                    ${state.selectedPatient ? `
-                        <div class="mt-6 border-t pt-6">
-                            <h3 class="text-xl font-bold mb-4">Paciente: ${state.selectedPatient.nombre} ${state.selectedPatient.apellido}</h3>
-                            <p class="mb-2">RUT: ${state.selectedPatient.rut_completo}</p>
-                            <p class="mb-4">Nivel de Riesgo: <span class="font-bold">${state.selectedPatient.nivel_riesgo}</span></p>
-                            
-                            <h4 class="font-bold mb-2">Incidentes:</h4>
-                            ${state.selectedPatient.estudios.map(inc => `
-                                <div class="border rounded-lg p-4 mb-2">
-                                    <p class="font-semibold">${inc.tipo_incidente}</p>
-                                    <p class="text-sm text-gray-600">${inc.descripcion}</p>
-                                    <p class="text-xs text-gray-500 mt-2">${inc.fecha_incidente}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
+                    <div class="flex gap-2 border-b">
+                        <button onclick="changeTab('buscar')" 
+                            class="px-6 py-3 font-semibold transition-colors ${state.activeTab === 'buscar' ? 'text-orange-600 border-b-2 border-orange-600' : 'text-gray-500'}">
+                            Consultar Historial
+                        </button>
+                        <button onclick="changeTab('registrar')" 
+                            class="px-6 py-3 font-semibold transition-colors ${state.activeTab === 'registrar' ? 'text-orange-600 border-b-2 border-orange-600' : 'text-gray-500'}">
+                            Registrar Incidente
+                        </button>
+                    </div>
                 </div>
 
-                <div class="mt-4 bg-blue-50 p-4 rounded-lg">
-                    <p class="text-sm text-blue-800">💡 Prueba con: RUT <strong>678</strong> e Iniciales <strong>JP</strong></p>
+                ${state.activeTab === 'buscar' ? renderBuscar() : renderRegistrar()}
+            `;
+        }
+
+        function renderBuscar() {
+            return `
+                <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                    <h3 class="text-xl font-bold mb-6">Buscar Paciente</h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Últimos 3 dígitos del RUT</label>
+                            <input type="text" id="rutDigits" value="${state.rutDigits}" maxlength="3" placeholder="Ej: 678"
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none text-lg text-center">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Iniciales (Nombre Apellido)</label>
+                            <input type="text" id="initials" value="${state.initials}" maxlength="2" placeholder="Ej: JP"
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:outline-none text-lg text-center uppercase">
+                        </div>
+                    </div>
+
+                    ${state.error ? `<div class="bg-red-50 border-l-4 border-red-500 p-4 rounded mb-4"><p class="text-red-700">${state.error}</p></div>` : ''}
+
+                    <div class="flex gap-4">
+                        <button onclick="buscarPaciente()" class="flex-1 bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700">
+                            Buscar
+                        </button>
+                        <button onclick="limpiarBusqueda()" class="px-6 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+
+                ${state.selectedPatient ? `
+                    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">Información del Paciente</h3>
+                            <span class="px-4 py-2 rounded-full font-bold text-sm ${
+                                state.selectedPatient.nivel_riesgo === 'ALTO' ? 'bg-red-100 text-red-700' :
+                                state.selectedPatient.nivel_riesgo === 'MEDIO' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-green-100 text-green-700'
+                            }">
+                                RIESGO ${state.selectedPatient.nivel_riesgo}
+                            </span>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-4 mb-6">
+                            <div>
+                                <p class="text-sm text-gray-600">Nombre</p>
+                                <p class="font-semibold">${state.selectedPatient.nombre} ${state.selectedPatient.apellido || ''}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">RUT</p>
+                                <p class="font-semibold">${state.selectedPatient.rut_completo}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Total Incidentes</p>
+                                <p class="font-semibold">${state.selectedPatient.estudios.length}</p>
+                            </div>
+                        </div>
+                        
+                        <h4 class="font-bold mb-4">Historial de Incidentes:</h4>
+                        ${state.selectedPatient.estudios.map(inc => `
+                            <div class="border-2 rounded-lg p-4 mb-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="px-3 py-1 text-xs font-semibold rounded-full ${
+                                        inc.nivel_gravedad === 'ALTO' ? 'bg-red-100 text-red-700' :
+                                        inc.nivel_gravedad === 'MEDIO' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-green-100 text-green-700'
+                                    }">
+                                        ${inc.nivel_gravedad}
+                                    </span>
+                                    <span class="font-semibold">${inc.tipo_incidente}</span>
+                                </div>
+                                <p class="text-gray-700 mb-2">${inc.descripcion}</p>
+                                <div class="flex gap-4 text-sm text-gray-600">
+                                    <span>📅 ${new Date(inc.fecha_incidente).toLocaleDateString('es-CL')}</span>
+                                    ${inc.centro_medico ? `<span>🏥 ${inc.centro_medico}</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                ${!state.selectedPatient && !state.error ? `
+                    <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg">
+                        <h3 class="font-bold text-orange-900 mb-2">💡 Datos de Prueba</h3>
+                        <p class="text-sm text-orange-800 mb-2">Prueba con:</p>
+                        <ul class="text-sm text-orange-800">
+                            <li>• RUT: <strong>678</strong>, Iniciales: <strong>JP</strong> (Juan Pérez)</li>
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function renderRegistrar() {
+            if (!suscripcionActiva) {
+                return `
+                    <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                        <div class="text-6xl mb-4">🔒</div>
+                        <h3 class="text-2xl font-bold mb-2">Suscripción Requerida</h3>
+                        <p class="text-gray-600 mb-6">Para registrar incidentes necesitas una suscripción activa.</p>
+                        <button onclick="window.location.href='/planes.html'" 
+                            class="bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-orange-700">
+                            Ver Planes
+                        </button>
+                    </div>
+                `;
+            }
+
+            if (state.incidenteRegistrado) {
+                return `
+                    <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                        <div class="text-6xl mb-4">✅</div>
+                        <h3 class="text-2xl font-bold mb-2">Incidente Registrado</h3>
+                        <p class="text-gray-600 mb-6">El incidente ha sido registrado exitosamente.</p>
+                        <div class="bg-gray-100 rounded-lg p-4 mb-6 inline-block">
+                            <p class="text-sm text-gray-600">Número de Registro</p>
+                            <p class="text-2xl font-bold">${state.numeroRegistro}</p>
+                        </div>
+                        <button onclick="resetFormulario()" 
+                            class="bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-orange-700">
+                            Registrar Otro
+                        </button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h3 class="text-xl font-bold mb-6">Registrar Nuevo Incidente</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <input type="text" id="rutPaciente" placeholder="RUT del Paciente *"
+                                class="px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                            <input type="text" id="nombre" placeholder="Nombre *"
+                                class="px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                            <input type="text" id="apellido" placeholder="Apellido"
+                                class="px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                            <input type="text" id="centroMedico" placeholder="Centro Médico *"
+                                class="px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                        </div>
+                        
+                        <select id="tipoIncidente" class="w-full px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                            <option value="">Tipo de Incidente *</option>
+                            <option value="agresion_verbal">Agresión Verbal</option>
+                            <option value="agresion_fisica">Agresión Física</option>
+                            <option value="amenazas">Amenazas</option>
+                            <option value="comportamiento_agresivo">Comportamiento Agresivo</option>
+                            <option value="negativa_tratamiento">Negativa a Seguir Tratamiento</option>
+                        </select>
+                        
+                        <input type="date" id="fechaIncidente"
+                            class="w-full px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none">
+                        
+                        <textarea id="descripcion" rows="6" placeholder="Descripción detallada *"
+                            class="w-full px-4 py-3 border-2 rounded-lg focus:border-orange-500 focus:outline-none resize-none"></textarea>
+                        
+                        <button onclick="registrarIncidente()" 
+                            class="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700">
+                            Registrar Incidente
+                        </button>
+                    </div>
                 </div>
             `;
+        }
 
-            document.getElementById('rutDigits').addEventListener('input', (e) => {
-                state.rutDigits = e.target.value.replace(/\D/g, '').slice(0, 3);
-                render();
-            });
-
-            document.getElementById('initials').addEventListener('input', (e) => {
-                state.initials = e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase();
-                render();
-            });
+        function changeTab(tab) {
+            state.activeTab = tab;
+            render();
         }
 
         async function buscarPaciente() {
-            if (state.rutDigits.length !== 3 || state.initials.length !== 2) {
-                state.error = 'Ingresa 3 dígitos y 2 iniciales';
+            const rutDigits = document.getElementById('rutDigits').value;
+            const initials = document.getElementById('initials').value;
+
+            if (rutDigits.length !== 3 || initials.length !== 2) {
+                state.error = 'Ingresa 3 dígitos del RUT y 2 iniciales';
                 render();
                 return;
             }
@@ -123,10 +335,7 @@
                 const response = await fetch('/api/buscar-paciente', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        rut_ultimos_3: state.rutDigits, 
-                        iniciales: state.initials 
-                    })
+                    body: JSON.stringify({ rut_ultimos_3: rutDigits, iniciales: initials })
                 });
 
                 const data = await response.json();
@@ -135,15 +344,82 @@
                     state.selectedPatient = data.pacientes[0];
                     state.error = '';
                 } else {
-                    state.error = 'No se encontró paciente';
+                    state.error = 'No se encontró paciente con esos datos';
                     state.selectedPatient = null;
                 }
             } catch (error) {
-                state.error = 'Error al conectar';
+                state.error = 'Error al conectar con el servidor';
             }
 
             render();
         }
+
+        function limpiarBusqueda() {
+            state.rutDigits = '';
+            state.initials = '';
+            state.selectedPatient = null;
+            state.error = '';
+            render();
+        }
+
+        async function registrarIncidente() {
+            const formData = {
+                rutPaciente: document.getElementById('rutPaciente').value,
+                nombre: document.getElementById('nombre').value,
+                apellido: document.getElementById('apellido').value,
+                centroMedico: document.getElementById('centroMedico').value,
+                tipoIncidente: document.getElementById('tipoIncidente').value,
+                fechaIncidente: document.getElementById('fechaIncidente').value,
+                descripcion: document.getElementById('descripcion').value,
+                userEmail: userEmail
+            };
+
+            if (!formData.rutPaciente || !formData.nombre || !formData.tipoIncidente || 
+                !formData.fechaIncidente || !formData.descripcion || !formData.centroMedico) {
+                alert('Completa todos los campos obligatorios (*)');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/registrar-incidente', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'user-email': userEmail
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    state.incidenteRegistrado = true;
+                    state.numeroRegistro = data.numeroRegistro;
+                } else {
+                    alert('Error: ' + (data.error || 'Error desconocido'));
+                }
+            } catch (error) {
+                alert('Error al conectar con el servidor');
+            }
+
+            render();
+        }
+
+        function resetFormulario() {
+            state.incidenteRegistrado = false;
+            state.numeroRegistro = '';
+            render();
+        }
+
+        // Event listeners para inputs
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'rutDigits') {
+                state.rutDigits = e.target.value.replace(/\D/g, '').slice(0, 3);
+            }
+            if (e.target.id === 'initials') {
+                state.initials = e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase();
+            }
+        });
     </script>
 </body>
 </html>
