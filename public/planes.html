@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planes - Sistema de Incidentes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">Sistema de Incidentes Médicos</h1>
+                <button onclick="window.location.href='/'" class="text-blue-600 hover:text-blue-800">
+                    Volver al Sistema
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-12 text-center">
+        <h2 class="text-4xl font-bold text-gray-900 mb-4">
+            Elige el Plan Perfecto
+        </h2>
+        <p class="text-xl text-gray-600 mb-8">
+            Gestiona incidentes de manera profesional
+        </p>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 pb-16">
+        <div class="grid md:grid-cols-3 gap-8">
+            
+            <!-- Plan Básico -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-br from-green-400 to-green-600 p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-2">Plan Básico</h3>
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-5xl font-bold">$9.990</span>
+                        <span class="ml-2">/mes</span>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3">✓</span>
+                            <span>Hasta 50 registros mensuales</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3">✓</span>
+                            <span>Consultas ilimitadas</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-3">✓</span>
+                            <span>Soporte por email</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="alert('Demo: Contactar a ventas@sistema.cl')" 
+                        class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
+                        Suscribirse
+                    </button>
+                </div>
+            </div>
+
+            <!-- Plan Profesional -->
+            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden transform scale-105 border-4 border-blue-500">
+                <div class="absolute top-0 right-0 bg-yellow-400 text-yellow-900 px-4 py-1 rounded-bl-lg font-bold text-sm">
+                    MÁS POPULAR
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-2">Plan Profesional</h3>
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-5xl font-bold">$19.990</span>
+                        <span class="ml-2">/mes</span>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3">✓</span>
+                            <span><strong>Registros ILIMITADOS</strong></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3">✓</span>
+                            <span>Exportar reportes</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3">✓</span>
+                            <span>API de integración</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 mr-3">✓</span>
+                            <span>Soporte prioritario</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="alert('Demo: Contactar a ventas@sistema.cl')" 
+                        class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                        Suscribirse
+                    </button>
+                </div>
+            </div>
+
+            <!-- Plan Empresa -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-gradient-to-br from-purple-500 to-purple-700 p-8 text-white">
+                    <h3 class="text-2xl font-bold mb-2">Plan Empresa</h3>
+                    <div class="flex items-baseline mb-4">
+                        <span class="text-5xl font-bold">$49.990</span>
+                        <span class="ml-2">/mes</span>
+                    </div>
+                </div>
+                
+                <div class="p-8">
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <span class="text-purple-500 mr-3">✓</span>
+                            <span>Todo del Plan Pro</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-500 mr-3">✓</span>
+                            <span>Múltiples usuarios</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-500 mr-3">✓</span>
+                            <span>Dashboard avanzado</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-purple-500 mr-3">✓</span>
+                            <span>Soporte 24/7</span>
+                        </li>
+                    </ul>
+                    
+                    <button onclick="alert('Demo: Contactar a ventas@sistema.cl')" 
+                        class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700">
+                        Contactar
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
